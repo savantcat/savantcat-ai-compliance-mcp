@@ -1,0 +1,79 @@
+{
+ "clusters": {
+  "ai-content-label": {
+   "name": "AI生成合成内容标识",
+   "count": 10
+  },
+  "algo-recommendation": {
+   "name": "算法推荐与备案",
+   "count": 8
+  },
+  "deep-synthesis": {
+   "name": "深度合成",
+   "count": 8
+  },
+  "filing-practice": {
+   "name": "备案实操",
+   "count": 4
+  },
+  "genai-interim": {
+   "name": "生成式AI暂行办法",
+   "count": 12
+  }
+ },
+ "regulations": [
+  {
+   "law": "《生成式人工智能服务管理暂行办法》",
+   "issuer": "国家网信办等七部门",
+   "published": "2023-07-13",
+   "effective": "2023-08-15",
+   "articles": 24,
+   "url": "http://www.cac.gov.cn/2023-07/13/c_1690898327029107.htm",
+   "cluster": "genai-interim",
+   "core_requirement": "面向境内公众提供生成式 AI 服务的主体义务：训练数据合法来源、内容安全、个人信息保护、投诉处置；具有舆论属性或社会动员能力的须安全评估 + 算法备案。"
+  },
+  {
+   "law": "《人工智能生成合成内容标识办法》",
+   "issuer": "国家网信办等四部门",
+   "published": "2025-03-07",
+   "effective": "2025-09-01",
+   "articles": 16,
+   "url": "https://www.cac.gov.cn/2025-03/14/c_1743654684782215.htm",
+   "cluster": "ai-content-label",
+   "core_requirement": "AI 生成合成内容必须带标识：显式标识让用户看得出来，隐式标识（文件元数据）让平台核验得出来；不得删除篡改。"
+  },
+  {
+   "law": "《互联网信息服务深度合成管理规定》",
+   "issuer": "国家网信办、工信部、公安部",
+   "published": "2022-12-11",
+   "effective": "2023-01-10",
+   "articles": 25,
+   "url": "https://www.gov.cn/zhengce/zhengceku/2022-12/12/content_5731431.htm",
+   "cluster": "deep-synthesis",
+   "core_requirement": "深度合成（换脸、AI 配音、数字人）服务的实名、内容审核、标识、生物识别信息单独同意，以及上线前的安全评估。"
+  },
+  {
+   "law": "《互联网信息服务算法推荐管理规定》",
+   "issuer": "国家网信办等四部门",
+   "published": "2021-12-31",
+   "effective": "2022-03-01",
+   "articles": 35,
+   "url": "http://www.cac.gov.cn/2022-01/04/c_1642894606364259.htm",
+   "cluster": "algo-recommendation",
+   "core_requirement": "算法推荐服务的备案时限（10 个工作日提交 / 30 个工作日办结）、公示义务、用户关闭选项、反大数据杀熟与安全评估。"
+  },
+  {
+   "law": "《网络安全技术 人工智能生成合成内容标识方法》（强制性国家标准 GB 45438-2025）",
+   "issuer": "国家市场监督管理总局 / 国家标准化管理委员会",
+   "published": "2025-03",
+   "effective": "2025-09-01",
+   "articles": null,
+   "url": "https://openstd.samr.gov.cn/",
+   "cluster": "ai-content-label",
+   "core_requirement": "与《人工智能生成合成内容标识办法》同日施行的强制性国标，规定显式/隐式标识的具体技术样式；标识办法第十一条要求标识活动同时符合强制性国家标准。",
+   "note": "标准原文请在国家标准化管理委员会「国家标准全文公开系统」核对。"
+  }
+ ],
+ "generated_from": "data_src/topics_*.json",
+ "site": "https://savantcat.cn/mcp-compliance"
+}
