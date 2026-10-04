@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "savantcat-compliance": {
+      "type": "http",
+      "url": "https://savantcat.cn/mcp-compliance"
+    }
+  }
+}
