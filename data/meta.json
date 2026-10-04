@@ -37,7 +37,7 @@
    "issuer": "国家网信办等四部门",
    "published": "2025-03-07",
    "effective": "2025-09-01",
-   "articles": 16,
+   "articles": 14,
    "url": "https://www.cac.gov.cn/2025-03/14/c_1743654684782215.htm",
    "cluster": "ai-content-label",
    "core_requirement": "AI 生成合成内容必须带标识：显式标识让用户看得出来，隐式标识（文件元数据）让平台核验得出来；不得删除篡改。"

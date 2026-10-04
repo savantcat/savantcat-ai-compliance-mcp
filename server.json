@@ -3,7 +3,7 @@
   "name": "cn.savantcat/ai-compliance",
   "title": "中国 AI 合规与备案（条文级自查）",
   "description": "生成式AI备案、AI生成内容标识、深度合成、算法备案：条文级问答 + 应办事项清单（中文）",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "websiteUrl": "https://savantcat.cn/answers/compliance/",
   "repository": {
     "url": "https://github.com/savantcat/savantcat-ai-compliance-mcp",

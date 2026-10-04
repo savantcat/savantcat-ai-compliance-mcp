@@ -17,10 +17,13 @@
   - self_check         按场景出自查清单（把命中条目的落地动作汇总成待办）
   - filing_route       备案/标识路径判定（输入服务形态，输出应办事项 + 条文依据）
   - regulation_info    收录法规清单（名称 / 发布施行日期 / 条数 / 官方原文链接）
+  - get_article        按**条号**取某部法规的逐字原文（附 sha256 内容指纹与官方原文链接）
+  - search_articles    在某一部法规**内部**按关键词检索条文（返回命中条号 + 摘录）
 
 自检(不走协议,直接打工具):  python server.py --selftest
 """
 import argparse
+import hashlib
 import io
 import json
 import os
@@ -149,9 +152,82 @@ def _public(item, with_body=False):
     return d
 
 
+# ---------------------------------------------------------------- 条文级查询
+_CN_DIGITS = "零一二三四五六七八九"
+
+
+def _cn_num(n):
+    """整数 → 中文数字（1-99 覆盖本法条范围）。"""
+    if n <= 0:
+        return str(n)
+    if n < 10:
+        return _CN_DIGITS[n]
+    if n < 20:
+        return "十" + (_CN_DIGITS[n % 10] if n % 10 else "")
+    if n < 100:
+        return _CN_DIGITS[n // 10] + "十" + (_CN_DIGITS[n % 10] if n % 10 else "")
+    return str(n)
+
+
+def _reg_of(cluster):
+    """cluster -> 该法规的元信息（REGULATIONS 里的一条）。"""
+    for r in REGULATIONS:
+        if r.get("cluster") == cluster:
+            return r
+    return None
+
+
+def _match_laws(law):
+    """把用户给的法规名/简称/cluster 解析成 [(cluster, reg)]，0/1/多 三种结果。"""
+    k = re.sub(r"[《》\s]", "", (law or "").strip())
+    if not k:
+        return []
+    out = []
+    for c in ARTICLES:
+        reg = _reg_of(c) or {}
+        name = re.sub(r"[《》\s]", "", reg.get("law", ""))
+        if k == c or (name and (k in name or name in k)):
+            out.append((c, reg))
+    return out
+
+
+def _norm_article(a, keys):
+    """条号归一化：支持「第十条」「10」「第10条」，返回 keys 里存在的那个键，否则 None。"""
+    s = (a or "").strip()
+    if not s:
+        return None
+    m = re.fullmatch(r"第?(\d{1,3})条?", s)
+    if m:
+        cand = "第%s条" % _cn_num(int(m.group(1)))
+    else:
+        m2 = re.fullmatch(r"第?([零一二三四五六七八九十百]+)条?", s)
+        cand = ("第%s条" % m2.group(1)) if m2 else s
+    return cand if cand in keys else None
+
+
+def _excerpt(text, query, span=(30, 90)):
+    """在条文中定位查询词，返回带省略号的摘录；定位不到则回首段。"""
+    for t in sorted(_tokens(query), key=len, reverse=True):
+        i = text.find(t)
+        if i >= 0:
+            s = max(0, i - span[0])
+            e = min(len(text), i + span[1])
+            return ("…" if s else "") + text[s:e] + ("…" if e < len(text) else "")
+    return text[:120] + ("…" if len(text) > 120 else "")
+
+
 # ---------------------------------------------------------------- MCP Server
+SERVER_VERSION = "1.1.0"
+
 mcp = _MCPServer(
     "savantcat-ai-compliance",
+    title="\u5408\u5c18\u732b \u00b7 \u4e2d\u56fd AI \u5408\u89c4\u4e0e\u5907\u6848\u77e5\u8bc6\u5e93",
+    description=(
+        "\u300a\u751f\u6210\u5f0f\u4eba\u5de5\u667a\u80fd\u670d\u52a1\u7ba1\u7406\u6682\u884c\u529e\u6cd5\u300b\u7b49\u6cd5\u89c4\u7684\u9010\u6761\u8981\u6c42\u4e0e\u5907\u6848\u8def\u5f84\uff0c"
+        "\u542b filing_route \u5e94\u529e\u4e8b\u9879\u6e05\u5355\u3002"
+    ),
+    version=SERVER_VERSION,
+    website_url="https://savantcat.cn/mcp-compliance",
     instructions=(
         "合尘猫 · 中国 AI 合规与备案知识库。收录《生成式人工智能服务管理暂行办法》"
         "《人工智能生成合成内容标识办法》《互联网信息服务深度合成管理规定》"
@@ -356,6 +432,115 @@ def regulation_info() -> str:
                       ensure_ascii=False, indent=2)
 
 
+@mcp.tool(annotations=RO_ANN)
+def get_article(law: str, article: str) -> str:
+    """按条号取某部法规的条文**逐字原文**，并附内容指纹与官方原文链接。
+
+    与 get_requirement 的分工：get_requirement 按「问题」取整条合规要求（含结论与落地动作）；
+    get_article 按「条号」取条文原文，用于逐字核对、引用与溯源。
+
+    Args:
+        law: 法规名或集群标识。可写全称（《生成式人工智能服务管理暂行办法》）、
+             简称（标识办法 / 算法推荐规定）或 cluster
+             （genai-interim / ai-content-label / deep-synthesis / algo-recommendation）
+        article: 条号，支持「第十条」「10」「第10条」三种写法
+    """
+    cands = _match_laws(law)
+    if not cands:
+        return json.dumps({
+            "error": "未识别该法规",
+            "law_input": law,
+            "available": [{"cluster": c, "law": (_reg_of(c) or {}).get("law")} for c in ARTICLES],
+            "hint": "用 regulation_info 看收录清单，或直接传 cluster 标识",
+        }, ensure_ascii=False, indent=2)
+    if len(cands) > 1:
+        return json.dumps({
+            "error": "法规名不唯一，请指明",
+            "law_input": law,
+            "candidates": [{"cluster": c, "law": (r or {}).get("law")} for c, r in cands],
+        }, ensure_ascii=False, indent=2)
+
+    cluster, reg = cands[0]
+    arts = ARTICLES.get(cluster) or {}
+    key = _norm_article(article, arts)
+    if not key:
+        ks = list(arts.keys())
+        return json.dumps({
+            "error": "该法规没有这一条",
+            "law": (reg or {}).get("law"),
+            "cluster": cluster,
+            "article_input": article,
+            "article_count": len(ks),
+            "available_range": ("%s … %s" % (ks[0], ks[-1])) if ks else None,
+            "hint": "条号支持「第十条」「10」「第10条」",
+        }, ensure_ascii=False, indent=2)
+
+    text = arts.get(key, "")
+    return json.dumps({
+        "law": (reg or {}).get("law"),
+        "cluster": cluster,
+        "article": key,
+        "text": text,
+        "chars": len(text),
+        "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "published": (reg or {}).get("published"),
+        "effective": (reg or {}).get("effective"),
+        "official_url": (reg or {}).get("url"),
+        "disclaimer": "条文按公开发布文本整理；正式引用请以官方公布文本为准（见 official_url）。",
+    }, ensure_ascii=False, indent=2)
+
+
+@mcp.tool(annotations=RO_ANN)
+def search_articles(law: str, keywords: str, top_k: int = 5) -> str:
+    """在**某一部法规内部**按关键词检索条文，返回命中条号 + 条文摘录。
+
+    用途：已经知道是哪部法规，要定位「哪一条讲了这件事」。
+
+    Args:
+        law: 法规名或集群标识（同 get_article 的 law 参数）
+        keywords: 检索词，如「训练数据 合法来源」「标识 元数据」「备案 十日」
+        top_k: 返回条数，默认 5
+    """
+    cands = _match_laws(law)
+    if not cands:
+        return json.dumps({
+            "error": "未识别该法规", "law_input": law,
+            "available": [{"cluster": c, "law": (_reg_of(c) or {}).get("law")} for c in ARTICLES],
+            "hint": "用 regulation_info 看收录清单",
+        }, ensure_ascii=False, indent=2)
+    if len(cands) > 1:
+        return json.dumps({
+            "error": "法规名不唯一，请指明", "law_input": law,
+            "candidates": [{"cluster": c, "law": (r or {}).get("law")} for c, r in cands],
+        }, ensure_ascii=False, indent=2)
+
+    cluster, reg = cands[0]
+    arts = ARTICLES.get(cluster) or {}
+    qt = _tokens(keywords)
+    if not qt:
+        return json.dumps({"error": "keywords 不能为空", "law": (reg or {}).get("law")},
+                          ensure_ascii=False, indent=2)
+
+    rows = []
+    for k, v in arts.items():
+        inter = len(qt & _tokens(v))
+        if inter:
+            rows.append((inter / float(len(qt)), k, v))
+    rows.sort(key=lambda x: -x[0])
+    hits = [{"article": k, "score": round(s, 3), "excerpt": _excerpt(v, keywords)}
+            for s, k, v in rows[:max(1, top_k)]]
+    if not hits:
+        return json.dumps({
+            "law": (reg or {}).get("law"), "cluster": cluster, "keywords": keywords, "hits": 0,
+            "hint": "换个说法，或先用 get_article 逐条看；也可用 search_compliance 按问题检索",
+        }, ensure_ascii=False, indent=2)
+    return json.dumps({
+        "law": (reg or {}).get("law"), "cluster": cluster,
+        "keywords": keywords, "hits": len(hits), "results": hits,
+        "hint": "用 get_article(law, article) 取命中条号的逐字原文",
+    }, ensure_ascii=False, indent=2)
+
+
 # ---------------------------------------------------------------- 入口
 def _selftest():
     print("[1] regulation_info    ->", json.loads(regulation_info())["count"], "部法规")
@@ -373,7 +558,17 @@ def _selftest():
     print("[6] filing_route       -> 应办事项 %d 条" % len(r["应办事项"]))
     r = json.loads(get_requirement("不存在的slug"))
     print("[7] 容错               ->", r.get("error"), "did_you_mean=", r.get("did_you_mean"))
-    print("\n✅ 7/7 工具自检通过")
+    r = json.loads(get_article("标识办法", "10"))
+    print("[8] get_article        -> %s %s chars=%s sha=%s" % (
+        r.get("law", "")[:14], r.get("article"), r.get("chars"), (r.get("sha256") or "")[:12]))
+    r = json.loads(get_article("genai-interim", "第七条"))
+    assert r.get("article") == "第七条" and r.get("text"), "get_article 集群写法失败"
+    r = json.loads(search_articles("生成式人工智能服务管理暂行办法", "训练数据 合法来源"))
+    print("[9] search_articles    -> hits=%d top=%s" % (
+        r.get("hits", 0), (r.get("results") or [{}])[0].get("article")))
+    r = json.loads(get_article("标识办法", "第九十九条"))
+    print("[10] 条号容错          ->", r.get("error"), "| range=", r.get("available_range"))
+    print("\n✅ 10/10 工具自检通过")
 
 
 def main():
