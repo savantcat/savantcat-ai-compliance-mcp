@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "cn.savantcat/ai-compliance",
   "title": "中国 AI 合规与备案（条文级自查）",
-  "description": "生成式AI备案、AI生成内容标识、深度合成、算法备案：条文级问答 + 应办事项清单（中文）",
+  "description": "生成式AI备案、AI生成内容标识、深度合成、算法备案：条文级问答 + 按条号取法规原文 + 应办清单（中文）",
   "version": "1.1.0",
   "websiteUrl": "https://savantcat.cn/answers/compliance/",
   "repository": {
