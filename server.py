@@ -217,7 +217,7 @@ def _excerpt(text, query, span=(30, 90)):
 
 
 # ---------------------------------------------------------------- MCP Server
-SERVER_VERSION = "1.1.0"
+SERVER_VERSION = "1.1.1"
 
 mcp = _MCPServer(
     "savantcat-ai-compliance",
