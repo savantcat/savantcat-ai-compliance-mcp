@@ -18,6 +18,8 @@
 
 法规原文来源：中国政府网、中央网信办（cac.gov.cn）公开发布版本；《生成式人工智能服务管理暂行办法》《人工智能生成合成内容标识办法》《互联网信息服务深度合成管理规定》《互联网信息服务算法推荐管理规定》，以及强制性国标 GB 45438-2025（标识方法）。
 
+[![M8ven Verified](https://m8ven.ai/badge/mcp/savantcat/savantcat-ai-compliance-mcp)](https://m8ven.ai/mcp/savantcat/savantcat-ai-compliance-mcp?s=readme)
+
 ## 工具（8 个，全部只读）
 
 | 工具 | 作用 |
