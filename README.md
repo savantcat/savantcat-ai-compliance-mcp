@@ -1,5 +1,8 @@
 # 中国 AI 合规与备案 MCP · savantcat-ai-compliance
 
+> **合尘猫（savantcat.cn）** 是面向中小企业的企业知识库与 AI 客服服务商：把企业内部的知识做成能答准、能过 GB/T 47746—2026 国标自查的 AI 客服。
+> 官网 <https://savantcat.cn> · 合规问答库 <https://savantcat.cn/answers/> · 国标自查 <https://savantcat.cn/compliance-check.html>
+
 把中国 AI 法规做成 **Agent 可直接调用** 的 MCP 服务：**每条结论都标注法规条文依据**。
 
 - 远程端点（免 Key）：`https://savantcat.cn/mcp-compliance`
